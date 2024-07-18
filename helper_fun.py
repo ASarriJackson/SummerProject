@@ -11,6 +11,14 @@ from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem
 from rdkit.ML.Cluster import Butina
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
+
+from sklearn import svm, metrics, clone
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import KFold, train_test_split
+from sklearn.metrics import auc, accuracy_score, recall_score
+from sklearn.metrics import roc_curve, roc_auc_score
 
 from warnings import filterwarnings
 import random
@@ -35,7 +43,7 @@ def filter_ro5_properties(smiles):
     )
 
 #Copied from T022
-def smiles_to_fp(smiles, method="morgan3", n_bits=2048):
+def smiles_to_fp(smiles, method="maccs", n_bits=2048):
     """
     Encode a molecule from a SMILES string into a fingerprint.
 
@@ -76,3 +84,13 @@ def convert_ic50_to_pic50(IC50_value):
     pIC50_value = 6 - math.log10(IC50_value)
     return pIC50_value
 
+def seed_everything(seed=22):
+    """Set the RNG seed in Python and Numpy"""
+    import random
+    import os
+    import numpy as np
+
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    
