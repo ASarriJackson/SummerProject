@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem
 from rdkit.ML.Cluster import Butina
-from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
+from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
 
 from warnings import filterwarnings
 import random
@@ -35,7 +35,7 @@ def filter_ro5_properties(smiles):
     )
 
 #Copied from T022
-def smiles_to_fp(smiles, method="morgan3", n_bits=2048):
+def smiles_to_fp(smiles, method="maccs", n_bits=2048):
     """
     Encode a molecule from a SMILES string into a fingerprint.
 
@@ -75,4 +75,40 @@ def smiles_to_fp(smiles, method="morgan3", n_bits=2048):
 def convert_ic50_to_pic50(IC50_value):
     pIC50_value = 6 - math.log10(IC50_value)
     return pIC50_value
+
+def model_training_and_validation(ml_model, name, splits, verbose=True):
+    """
+    Fit a machine learning model on a random train-test split of the data
+    and return the performance measures.
+
+    Parameters
+    ----------
+    ml_model: sklearn model object
+        The machine learning model to train.
+    name: str
+        Name of machine learning algorithm: RF, SVM, ANN
+    splits: list
+        List of desciptor and label data: train_x, test_x, train_y, test_y.
+    verbose: bool
+        Print performance info (default = True)
+
+    Returns
+    -------
+    tuple:
+        Accuracy, sensitivity, specificity, auc on test set.
+
+    """
+    train_x, test_x, train_y, test_y = splits
+
+    # Fit the model
+    ml_model.fit(train_x, train_y)
+
+    # Calculate model performance results
+    accuracy, sens, spec, auc = model_performance(ml_model, test_x, test_y, verbose)
+
+    return accuracy, sens, spec, auc
+
+
+
+
 
