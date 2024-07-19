@@ -96,40 +96,6 @@ def seed_everything(seed=22):
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
  
-
-
-def model_training_and_validation(ml_model, name, splits, verbose=True):
-    """
-    Fit a machine learning model on a random train-test split of the data
-    and return the performance measures.
-
-    Parameters
-    ----------
-    ml_model: sklearn model object
-        The machine learning model to train.
-    name: str
-        Name of machine learning algorithm: RF, SVM, ANN
-    splits: list
-        List of desciptor and label data: train_x, test_x, train_y, test_y.
-    verbose: bool
-        Print performance info (default = True)
-
-    Returns
-    -------
-    tuple:
-        Accuracy, sensitivity, specificity, auc on test set.
-
-    """
-    train_x, test_x, train_y, test_y = splits
-
-    # Fit the model
-    ml_model.fit(train_x, train_y)
-
-    # Calculate model performance results
-    accuracy, sens, spec, auc = model_performance(ml_model, test_x, test_y, verbose)
-
-    return accuracy, sens, spec, auc
-
 def model_performance(ml_model, test_x, test_y, verbose=True):
     """
     Helper function to calculate model performance
@@ -171,6 +137,39 @@ def model_performance(ml_model, test_x, test_y, verbose=True):
         print(f"AUC: {auc:.2f}")
 
     return accuracy, sens, spec, auc
+
+def model_training_and_validation(ml_model, name, splits, verbose=True):
+    """
+    Fit a machine learning model on a random train-test split of the data
+    and return the performance measures.
+
+    Parameters
+    ----------
+    ml_model: sklearn model object
+        The machine learning model to train.
+    name: str
+        Name of machine learning algorithm: RF, SVM, ANN
+    splits: list
+        List of desciptor and label data: train_x, test_x, train_y, test_y.
+    verbose: bool
+        Print performance info (default = True)
+
+    Returns
+    -------
+    tuple:
+        Accuracy, sensitivity, specificity, auc on test set.
+
+    """
+    train_x, test_x, train_y, test_y = splits
+
+    # Fit the model
+    ml_model.fit(train_x, train_y)
+
+    # Calculate model performance results
+    accuracy, sens, spec, auc = model_performance(ml_model, test_x, test_y, verbose)
+
+    return accuracy, sens, spec, auc
+
 
 def plot_roc_curves_for_models(models, test_x, test_y, save_png=False):
     """
