@@ -106,3 +106,9 @@ param_10 = {
     "criterion": "entropy",  # cost function to be optimized for a split
 }
 model_RF_10 = RandomForestClassifier(**param_10)
+
+performance_measures = model_training_and_validation(model_RF_2, "RF", splits_2)
+models_RF_2 = [{"label": "RF: 2 Split", "model": model_RF_2}]
+# models_RF.append({"label": "RF: 3 Split", "model": model_RF_3})
+# models_RF.append({"label": "RF: 10 Split", "model": model_RF_10})
+plot_roc_curves_for_models(models_RF_2, static_test_x_2, static_test_y_2)
