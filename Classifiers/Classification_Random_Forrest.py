@@ -1,5 +1,12 @@
+import os
 import sys
-sys.path.append('..')
+
+# Get the directory of the current script
+current_script_path = os.path.dirname(os.path.abspath(__file__))
+
+# Add the parent directory of the current script to sys.path
+parent_directory = os.path.dirname(current_script_path)
+sys.path.append(parent_directory)
 
 from helper_fun import *
 import helper_fun
@@ -10,7 +17,7 @@ from Split_functions_classify.splits_ten import *
 SEED = 22
 seed_everything(SEED)
 
-compounds = pd.read_csv('../COVID_MOONSHOT/compounds_filtered.csv')
+compounds = pd.read_csv('COVID_MOONSHOT/compounds_filtered.csv')
 # compounds.head(2)
 
 two_split(compounds)
