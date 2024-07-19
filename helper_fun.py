@@ -130,8 +130,95 @@ def model_training_and_validation(ml_model, name, splits, verbose=True):
 
     return accuracy, sens, spec, auc
 
+def model_performance(ml_model, test_x, test_y, verbose=True):
+    """
+    Helper function to calculate model performance
 
+    Parameters
+    ----------
+    ml_model: sklearn model object
+        The machine learning model to train.
+    test_x: list
+        Molecular fingerprints for test set.
+    test_y: list
+        Associated activity labels for test set.
+    verbose: bool
+        Print performance measure (default = True)
 
+    Returns
+    -------
+    tuple:
+        Accuracy, sensitivity, specificity, auc on test set.
+    """
 
+    # Prediction probability on test set
+    test_prob = ml_model.predict_proba(test_x)[:, 1]
+
+    # Prediction class on test set
+    test_pred = ml_model.predict(test_x)
+
+    # Performance of model on test set
+    accuracy = accuracy_score(test_y, test_pred)
+    sens = recall_score(test_y, test_pred)
+    spec = recall_score(test_y, test_pred, pos_label=0)
+    auc = roc_auc_score(test_y, test_prob)
+
+    if verbose:
+        # Print performance results
+        # NBVAL_CHECK_OUTPUT        print(f"Accuracy: {accuracy:.2}")
+        print(f"Sensitivity: {sens:.2f}")
+        print(f"Specificity: {spec:.2f}")
+        print(f"AUC: {auc:.2f}")
+
+    return accuracy, sens, spec, auc
+
+def plot_roc_curves_for_models(models, test_x, test_y, save_png=False):
+    """
+    Helper function to plot customized roc curve.
+
+    Parameters
+    ----------
+    models: dict
+        Dictionary of pretrained machine learning models.
+    test_x: list
+        Molecular fingerprints for test set.
+    test_y: list
+        Associated activity labels for test set.
+    save_png: bool
+        Save image to disk (default = False)
+
+    Returns
+    -------
+    fig:
+        Figure.
+    """
+
+    fig, ax = plt.subplots()
+
+    # Below for loop iterates through your models list
+    for model in models:
+        # Select the model
+        ml_model = model["model"]
+        # Prediction probability on test set
+        test_prob = ml_model.predict_proba(test_x)[:, 1]
+        # Prediction class on test set
+        test_pred = ml_model.predict(test_x)
+        # Compute False postive rate and True positive rate
+        fpr, tpr, thresholds = metrics.roc_curve(test_y, test_prob)
+        # Calculate Area under the curve to display on the plot
+        auc = roc_auc_score(test_y, test_prob)
+        # Plot the computed values
+        ax.plot(fpr, tpr, label=(f"{model['label']} AUC area = {auc:.2f}"))
+
+    # Custom settings for the plot
+    ax.plot([0, 1], [0, 1], "r--")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title("Receiver Operating Characteristic")
+    ax.legend(loc="lower right")
+    # Save plot
+    if save_png:
+        fig.savefig(f"{DATA}/roc_auc", dpi=300, bbox_inches="tight", transparent=True)
+    return fig
 
 
