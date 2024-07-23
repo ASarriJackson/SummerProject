@@ -19,8 +19,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import auc, accuracy_score, recall_score
-from sklearn.metrics import roc_curve, roc_auc_score
-
+from sklearn.metrics import roc_curve, roc_auc_score, RocCurveDisplay
+from sklearn.metrics import matthews_corrcoef, f1_score
+from sklearn.preprocessing import LabelBinarizer
+from itertools import cycle
 from warnings import filterwarnings
 import random
 
@@ -221,3 +223,45 @@ def plot_roc_curves_for_models(models, test_x, test_y, save_png=False):
     return fig
 
 
+def plot_roc_for_multi_class(model,static_test_x,static_train_y,static_test_y,bins_label,one_vs_rest=True,micro=True):
+    test_prob = model.predict_proba(static_test_x)
+    
+    label_binarizer = LabelBinarizer().fit(static_train_y)
+    y_onehot_test = label_binarizer.transform(static_test_y)
+    
+    fpr, tpr, roc_auc = dict(), dict(), dict()
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_onehot_test.ravel(),test_prob.ravel())
+    roc_auc["micro"] = auc(fpr["micro"],tpr["micro"])
+    
+    fig, ax = plt.subplots(figsize=(10,10))
+    if micro == True:
+        plt.plot(
+        fpr["micro"],
+        tpr["micro"],
+        label=f"micro-average ROC curve (AUC = {roc_auc["micro"]:.2f})",
+        color = "deeppink",
+        linestyle=":",
+        linewidth=4,
+    )
+    if one_vs_rest == True:
+        colors = cycle(["blue","green","orange","red","violet","brown","aqua","black","darkblue","purple"])
+        for class_id, color in zip(range(len(bins_label)), colors):
+            RocCurveDisplay.from_predictions(
+                y_onehot_test[:, class_id],
+                test_prob[:, class_id],
+                name=f"ROC curve for {bins_label[class_id]}",
+                color=color,
+                ax=ax,
+                plot_chance_level=(class_id == len(bins_label)-1),
+            )
+    _ = ax.set(
+        xlabel="False Positive Rate",
+        ylabel="True Positive Rate",
+        title="ROC curves for multiclass"
+    )
+    if one_vs_rest==False:
+        plt.axline(xy1=[0,0],xy2=[1.0,1.0],color="black",label="Chance level (AUC = 0.5)",linestyle="--")
+        plt.legend(
+            loc = "lower right"
+        )
+    return None
