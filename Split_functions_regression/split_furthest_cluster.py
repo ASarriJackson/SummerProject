@@ -31,24 +31,27 @@ def fingerprint_as_array(mol, n_bits=2048):
     DataStructs.ConvertToNumpyArray(fingerprint, array)
     return array
 
-def get_umap_fingerprint_array(table):
-    SMILES_list = [x for x in table.SMILES]
+def get_umap_fingerprint_array(table, smiles_column="SMILES"):
+    SMILES_list = [x for x in table.smiles_column]
     fingerprint_list = fingerprint_list_from_smiles_list(SMILES_list)
     fingerprint_array = np.array(fingerprint_list) 
     return fingerprint_array
 
-def get_umap_fingerprint_plot(table):
+def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50"):
     fingerprint_array = get_umap_fingerprint_array(table)
     umap_reducer = umap.UMAP()
     umap_fingerprint_array = umap_reducer.fit_transform(fingerprint_array)
     umap_fingerprint_array_fig = pd.DataFrame(umap_fingerprint_array, columns=["X","Y"])
-    umap_fingerprint_array_fig['CID'] = table['CID'].values
-    umap_fingerprint_array_fig['f_avg_pIC50'] = table['f_avg_pIC50'].values
-    umap_fingerprint_array_fig.dropna(subset=['CID'], inplace=True)
-    custom_data = umap_fingerprint_array_fig[['CID', 'f_avg_pIC50']]
+    umap_fingerprint_array_fig[CID_column] = table[CID_column].values
+    umap_fingerprint_array_fig[pIC50_column] = table[pIC50_column].values
+    umap_fingerprint_array_fig.dropna(subset=[CID_column], inplace=True)
+    return umap_fingerprint_array_fig
+
+def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50"):
+    custom_data = umap_fingerprint_array_fig[[CID_column, pIC50_column]]
 
     df_fig = px.scatter(umap_fingerprint_array_fig, x="X", y="Y",
-                    hover_data= ['CID', 'f_avg_pIC50'],
+                    hover_data= [CID_column, pIC50_column],
                     custom_data= custom_data,
                     title="UMAP Projection of Molecules")
 
@@ -56,4 +59,12 @@ def get_umap_fingerprint_plot(table):
     df_fig.update_layout(width=800, height=800, transition_duration=500)
 
     return df_fig.show()
+
+#edit below
+#define a function called split_furthest cluster that inputs the umap_fingerprint_array_fig and outputs X_train, X_test, Y_train, Y_test where the test set is a cluster of 20% of the data that is least like the other 80% of the data
+def split_furthest_cluster(table, CID_column="CID", pIC50_column="f_avg_pIC50", test_size=0.2):
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table)
+    
+
+
 
