@@ -86,7 +86,7 @@ def convert_ic50_to_pic50(IC50_value):
     return pIC50_value
 
 
-def seed_everything(seed=22):
+def seed_everything(seed=42):
     """Set the RNG seed in Python and Numpy"""
     import random
     import os

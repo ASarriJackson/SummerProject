@@ -14,7 +14,7 @@ from Split_functions_classify.splits_two import *
 from Split_functions_classify.splits_three import *
 from Split_functions_classify.splits_ten import *
 
-SEED = 22
+SEED = 42
 seed_everything(SEED)
 
 compounds = pd.read_csv('COVID_MOONSHOT/compounds_filtered.csv')
