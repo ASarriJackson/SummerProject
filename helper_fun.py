@@ -1,7 +1,7 @@
 #import necessary packages
 from pathlib import Path
 import math
-
+import optuna
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,11 +17,12 @@ from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
 from sklearn import svm, metrics, clone
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import KFold, train_test_split, cross_val_score
 from sklearn.metrics import auc, accuracy_score, recall_score
 from sklearn.metrics import roc_curve, roc_auc_score, RocCurveDisplay
-from sklearn.metrics import matthews_corrcoef, f1_score
+from sklearn.metrics import matthews_corrcoef, f1_score,classification_report
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from itertools import cycle
 from warnings import filterwarnings
 import random
@@ -265,3 +266,16 @@ def plot_roc_for_multi_class(model,static_test_x,static_train_y,static_test_y,bi
             loc = "lower right"
         )
     return None
+
+
+def calculate_micro_auc(model,static_test_x,static_train_y,static_test_y):
+    test_prob = model.predict_proba(static_test_x)
+    
+    label_binarizer = LabelBinarizer().fit(static_train_y)
+    y_onehot_test = label_binarizer.transform(static_test_y)
+    
+    fpr, tpr, roc_auc = dict(), dict(), dict()
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_onehot_test.ravel(),test_prob.ravel())
+    roc_auc["micro"] = auc(fpr["micro"],tpr["micro"])
+    
+    return auc(fpr["micro"],tpr["micro"])
