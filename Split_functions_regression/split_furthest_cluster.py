@@ -274,9 +274,39 @@ def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID",
     plt.title('UMAP projection with Noise Highlighted')
     return plt.show()
    
+#adapted from https://github.com/Sahet11/nci60_clustering/blob/main/umap_clustering.py
+def umap_clustering_best(table, df_data, n_clusters=20, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50" ):
+    """
+    Best clustering method
+    :param sample: MPFs
+    :param df_data: CID, SMILES
+    :param n_clusters: Default 7 clusters
+    :return: [CID, SMILES, CLuster_ID]
+    Must first define df_data as a dataframe with CID and SMILES columns only
+    compounds = pd.read_csv("../COVID_MOONSHOT/compounds_filtered.csv")
+    df_data = compounds[["CID", "SMILES"]]
+    """
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    t0 = time()
+    x_red = umap.UMAP(n_neighbors=100, min_dist=0.0,
+                      n_components=2, metric='jaccard',
+                      random_state=42).fit_transform(fingerprint_array)
+    clustering = AgglomerativeClustering(linkage='ward', n_clusters=n_clusters)
+    clustering.fit(x_red)
+    tf = time() - t0
+    # Assign cluster ID
+    df_clusters = assign_cluster_id(df_data, clustering)
+    # Metrics
+    s1 = silhouette_score(x_red, clustering.labels_, metric='euclidean')
+    c1 = calinski_harabasz_score(x_red, clustering.labels_)
+    d1 = davies_bouldin_score(x_red, clustering.labels_)
+    df_metrics = pd.DataFrame(data=[[tf, s1, c1, d1]],
+                              columns=['Time', 'Silhouette', 'CH score', 'DB score'])
+    return df_metrics, df_clusters
 
-
-
-
+def assign_cluster_id(df_data, cluster_id):
+    print('\nAssign cluster ID')
+    df_data['Cluster_ID'] = cluster_id.labels_
+    return df_data
 
 
