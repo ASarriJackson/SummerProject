@@ -238,7 +238,7 @@ def plot_roc_for_multi_class(model,static_test_x,static_train_y,static_test_y,bi
         plt.plot(
         fpr["micro"],
         tpr["micro"],
-        label=f"micro-average ROC curve (AUC = {roc_auc["micro"]:.2f})",
+        label=f'micro-average ROC curve (AUC = {roc_auc["micro"]:.2f})',
         color = "deeppink",
         linestyle=":",
         linewidth=4,
