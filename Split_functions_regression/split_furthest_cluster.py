@@ -32,13 +32,13 @@ def fingerprint_as_array(mol, n_bits=2048):
     return array
 
 def get_umap_fingerprint_array(table, smiles_column="SMILES"):
-    SMILES_list = [x for x in table.smiles_column]
+    SMILES_list = [x for x in table[smiles_column]]
     fingerprint_list = fingerprint_list_from_smiles_list(SMILES_list)
     fingerprint_array = np.array(fingerprint_list) 
     return fingerprint_array
 
 def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50"):
-    fingerprint_array = get_umap_fingerprint_array(table)
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column="SMILES")
     umap_reducer = umap.UMAP()
     umap_fingerprint_array = umap_reducer.fit_transform(fingerprint_array)
     umap_fingerprint_array_fig = pd.DataFrame(umap_fingerprint_array, columns=["X","Y"])
@@ -48,6 +48,7 @@ def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_
     return umap_fingerprint_array_fig
 
 def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50"):
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50")
     custom_data = umap_fingerprint_array_fig[[CID_column, pIC50_column]]
 
     df_fig = px.scatter(umap_fingerprint_array_fig, x="X", y="Y",
@@ -60,11 +61,222 @@ def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50
 
     return df_fig.show()
 
-#edit below
-#define a function called split_furthest cluster that inputs the umap_fingerprint_array_fig and outputs X_train, X_test, Y_train, Y_test where the test set is a cluster of 20% of the data that is least like the other 80% of the data
-def split_furthest_cluster(table, CID_column="CID", pIC50_column="f_avg_pIC50", test_size=0.2):
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table)
+def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50"):
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    clusterable_embedding = umap.UMAP(n_neighbors=15, min_dist=0.0, n_components=2,).fit_transform(fingerprint_array)
+    clusterer = hdbscan.HDBSCAN(min_samples=15, min_cluster_size=75)
+    labels = clusterer.fit_predict(clusterable_embedding)
+
+
+    main_cluster = np.argmax(np.bincount(labels[labels >= 0]))
+    main_cluster_centroid = clusterable_embedding[labels == main_cluster].mean(axis=0)
+    distances = []
+    for i in np.unique(labels):
+        if i == main_cluster or i == -1:  # Exclude noise (-1) and the main cluster
+            continue
+        cluster_centroid = clusterable_embedding[labels == i].mean(axis=0)
+        distance = np.linalg.norm(cluster_centroid - main_cluster_centroid)
+        distances.append((i, distance))
+
+    distances.sort(key=lambda x: x[1], reverse=True)
+    furthest_cluster_label = distances[0][0]
+    furthest_cluster_points = clusterable_embedding[labels == furthest_cluster_label]
+
+    #select a subset of the furthest cluster points
+    if len(furthest_cluster_points) > len(clusterable_embedding) * 0.2:
+        _, distances_to_centroid = pairwise_distances_argmin_min(furthest_cluster_points, [clusterable_embedding[labels == furthest_cluster_label].mean(axis=0)])
+        selected_indices = np.argsort(distances_to_centroid)[-int(len(clusterable_embedding) * 0.2):]
+        selected_points = furthest_cluster_points[selected_indices]
+    else:
+        selected_points = furthest_cluster_points
+
+        #create a numpy.ndarray of points from clusterable_embedding not in selected_points
+    mask1 = np.ones(len(clusterable_embedding), dtype=bool)
+
+
+    # Iterate over selected points and update the mask to False for selected points
+    for point in selected_points:
+        # Find the indices where the points match the selected point
+        indices = np.where((clusterable_embedding == point).all(axis=1))[0]
+        # Set those positions in the mask to False (indicating they are selected, not non-selected)
+        mask1[indices] = False
+
+    # Use the mask to filter out the selected points, leaving only non-selected points
+    non_selected_points = clusterable_embedding[mask1]
+
+    #turn selected_points into two pd.Series
+    selected_points_series_x = pd.Series(selected_points[:, 0])  # For the first column
+    selected_points_series_y = pd.Series(selected_points[:, 1])
+    clusterable_embedding_series_x = pd.Series(clusterable_embedding[:, 0])
+    clusterable_embedding_series_y = pd.Series(clusterable_embedding[:, 1])
+
+    selected_points_series_x.name = "selected_X"
+    selected_points_series_y.name = "selected_Y"
+    clusterable_embedding_series_x.name = "cluster_X"
+    clusterable_embedding_series_y.name = "cluster_Y"
+
+    cluster_embedding_df0 = pd.merge(clusterable_embedding_series_x, clusterable_embedding_series_y, left_index=True, right_index=True)
+    cluster_embedding_df = pd.merge(cluster_embedding_df0, umap_fingerprint_array_fig, left_index=True, right_index=True)
+    selected_points_merge = pd.merge(selected_points_series_x, selected_points_series_y, left_index=True, right_index=True)
+    selected_points_df = pd.merge(selected_points_merge, cluster_embedding_df, left_on=["selected_X", "selected_Y"], right_on=["cluster_X", "cluster_Y"])
+
+
+    #     # Append these rows to the selected_points_df DataFrame
+    #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
+    X_test = selected_points_df[smiles_column].apply(smiles_to_fp)
+    Y_test = selected_points_df[pIC50_column]
+    non_selected_points_series_x = pd.Series(non_selected_points[:, 0])  # For the first column
+    non_selected_points_series_y = pd.Series(non_selected_points[:, 1])
+
+    non_selected_points_series_x.name = "non_selected_X"
+    non_selected_points_series_y.name = "non_selected_Y"
+
+
+    non_selected_points_merge = pd.merge(non_selected_points_series_x, non_selected_points_series_y, left_index=True, right_index=True)
+    selected_points_df = pd.merge(non_selected_points_merge, cluster_embedding_df, left_on=["non_selected_X", "non_selected_Y"], right_on=["cluster_X", "cluster_Y"])
+
+
+    #     # Append these rows to the selected_points_df DataFrame
+    #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
+    X_train = selected_points_df[smiles_column].apply(smiles_to_fp)
+    Y_train = selected_points_df[pIC50_column]
+
+    return X_test, X_train, Y_test, Y_train
+
+def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50"):
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    clusterable_embedding = umap.UMAP(n_neighbors=15, min_dist=0.0, n_components=2,).fit_transform(fingerprint_array)
+    clusterer = hdbscan.HDBSCAN(min_samples=15, min_cluster_size=75)
+    labels = clusterer.fit_predict(clusterable_embedding)
+
+    #gives a 114 points (20% = 119) !
+    noise_points = clusterable_embedding[labels == -1]
+    mask2 = np.ones(len(clusterable_embedding), dtype=bool)
+    for point in noise_points:
+        # Find the indices where the points match the selected point
+        indices = np.where((clusterable_embedding == point).all(axis=1))[0]
+        # Set those positions in the mask to False (indicating they are selected, not non-selected)
+        mask2[indices] = False
+
+    non_noise_points = clusterable_embedding[mask2]
+
+    #turn selected_points into two pd.Series
+    noise_points_series_x = pd.Series(noise_points[:, 0])  # For the first column
+    noise_points_series_y = pd.Series(noise_points[:, 1])
+    clusterable_embedding_series_x = pd.Series(clusterable_embedding[:, 0])
+    clusterable_embedding_series_y = pd.Series(clusterable_embedding[:, 1])
+
+    noise_points_series_x.name = "noise_X"
+    noise_points_series_y.name = "noise_Y"
+    clusterable_embedding_series_x.name = "cluster_X"
+    clusterable_embedding_series_y.name = "cluster_Y"
+
+    cluster_embedding_df0 = pd.merge(clusterable_embedding_series_x, clusterable_embedding_series_y, left_index=True, right_index=True)
+    cluster_embedding_df = pd.merge(cluster_embedding_df0, umap_fingerprint_array_fig, left_index=True, right_index=True)
+    noise_points_merge = pd.merge(noise_points_series_x, noise_points_series_y, left_index=True, right_index=True)
+    noise_points_df = pd.merge(noise_points_merge, cluster_embedding_df, left_on=["noise_X", "noise_Y"], right_on=["cluster_X", "cluster_Y"])
+
+
+    #     # Append these rows to the selected_points_df DataFrame
+    #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
+    X_test = noise_points_df[smiles_column].apply(smiles_to_fp)
+    Y_test = noise_points_df[pIC50_column]
+    non_noise_points_series_x = pd.Series(non_noise_points[:, 0])  # For the first column
+    non_noise_points_series_y = pd.Series(non_noise_points[:, 1])
+
+    non_noise_points_series_x.name = "non_noise_X"
+    non_noise_points_series_y.name = "non_noise_Y"
+
+
+    non_noise_points_merge = pd.merge(non_noise_points_series_x, non_noise_points_series_y, left_index=True, right_index=True)
+    noise_points_df = pd.merge(non_noise_points_merge, cluster_embedding_df, left_on=["non_noise_X", "non_noise_Y"], right_on=["cluster_X", "cluster_Y"])
+
+
+    #     # Append these rows to the selected_points_df DataFrame
+    #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
+    X_train = noise_points_df[smiles_column].apply(smiles_to_fp)
+    Y_train = noise_points_df[pIC50_column]
+
+    return X_test, X_train, Y_test, Y_train
+
+def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75 ):
+    '''
+    min_samples=15, min_cluster_size=75: Number of selected points: 93
+
+    '''
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    clusterable_embedding = umap.UMAP(
+        n_neighbors=n_neighbors,
+        min_dist= min_dist,
+        n_components=n_components,
+    ).fit_transform(fingerprint_array)
+
+    clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
+    labels = clusterer.fit_predict(clusterable_embedding)
+    main_cluster = np.argmax(np.bincount(labels[labels >= 0]))
+    main_cluster_centroid = clusterable_embedding[labels == main_cluster].mean(axis=0)
+    distances = []
+    for i in np.unique(labels):
+        if i == main_cluster or i == -1:  # Exclude noise (-1) and the main cluster
+            continue
+        cluster_centroid = clusterable_embedding[labels == i].mean(axis=0)
+        distance = np.linalg.norm(cluster_centroid - main_cluster_centroid)
+        distances.append((i, distance))
+
+    distances.sort(key=lambda x: x[1], reverse=True)
+    furthest_cluster_label = distances[0][0]
+    furthest_cluster_points = clusterable_embedding[labels == furthest_cluster_label]
+
+    #select a subset of the furthest cluster points
+    if len(furthest_cluster_points) > len(clusterable_embedding) * 0.2:
+         _, distances_to_centroid = pairwise_distances_argmin_min(furthest_cluster_points, [clusterable_embedding[labels == furthest_cluster_label].mean(axis=0)])
+         selected_indices = np.argsort(distances_to_centroid)[-int(len(clusterable_embedding) * 0.2):]
+         selected_points = furthest_cluster_points[selected_indices]
+    else:
+         selected_points = furthest_cluster_points
     
+    print(f"Number of selected points: {len(selected_points)}")
+    # Plot all points
+    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='All Other Points')
+
+    # Highlight selected points
+    plt.scatter(selected_points[:, 0], selected_points[:, 1], color='red', s= 0.3, label='Furthest Cluster Points')
+
+    plt.legend()
+    plt.title('UMAP projection with Furthest Cluster Points Highlighted')
+    return plt.show()
+
+def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75): 
+    '''
+    min_samples=10, min_cluster_size=80: Number of noise points: 129
+    '''
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    clusterable_embedding = umap.UMAP(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        n_components=n_components,
+    ).fit_transform(fingerprint_array)
+
+    clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
+    labels = clusterer.fit_predict(clusterable_embedding)
+    noise_points = clusterable_embedding[labels == -1]
+    print(f"Number of noise points: {len(noise_points)}")
+    # Plot all points
+    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='All Other Points')
+
+    # Highlight selected points
+    plt.scatter(noise_points[:, 0], noise_points[:, 1], color='red', s= 0.3, label='Noise')
+    plt.legend()
+    plt.title('UMAP projection with Noise Highlighted')
+    return plt.show()
+   
+
+
+
 
 
 
