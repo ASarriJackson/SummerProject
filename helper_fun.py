@@ -14,6 +14,8 @@ from rdkit.ML.Cluster import Butina
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
 
+from rdkit.Chem.rdmolops import GetAdjacencyMatrix
+
 from sklearn import svm, metrics, clone
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
