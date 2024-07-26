@@ -6,6 +6,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 # from matplotlib.lines import Line2D
+
+from scipy.stats import spearmanr
+import umap
+from tqdm import tqdm
+import hdbscan
+import plotly.express as px
+
+
 # import matplotlib.patches as mpatches
 from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem
@@ -15,6 +23,8 @@ from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
 
 from sklearn import svm, metrics, clone
+import sklearn.datasets
+import sklearn.cluster as cluster
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold, train_test_split, cross_val_score
@@ -23,6 +33,8 @@ from sklearn.metrics import roc_curve, roc_auc_score, RocCurveDisplay
 from sklearn.metrics import matthews_corrcoef, f1_score,classification_report
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+
 from itertools import cycle
 from warnings import filterwarnings
 import random

@@ -17,6 +17,7 @@ import warnings
 
 warnings.simplefilter('ignore', UserWarning)
 
+
 def tanimoto_distance_matrix(fp_list):
     """Calculate distance matrix for fingerprint list"""
     # distance_matrix = []
@@ -44,17 +45,23 @@ def assign_cluster_id(df_data, cluster_labels):
     '''df_data is a data frame that contains only CID and SMILES columns
     '''
     print('\nAssign cluster ID')
-    df_data['Cluster_ID'] = cluster_labels
+    # Count the size of each cluster
+    cluster_sizes = pd.Series(cluster_labels).value_counts()
+    # Create a mapping from old cluster ID to new cluster ID based on size
+    cluster_mapping = {old: new for new, old in enumerate(cluster_sizes.index)}
+    # Reassign cluster IDs
+    df_data.loc[:, 'Cluster_ID'] = pd.Series(cluster_labels).map(cluster_mapping)
     return df_data
 
 #define a function that takes in a list of fingerprints and a cutoff value and returns the equivalent cluster labels
-def hierarchical_cluster_fingerprints(table, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES'):
+def hierarchical_cluster_fingerprints(table, distance_threshold=0.12, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50'):
     """Cluster fingerprints
     Input: whole dataframe (compounds)
     Parameters:
         fingerprints
         cutoff: threshold for the clustering, 0.2 is usual
     """
+
     t0 = time()
     # Generate fingerprints
     compounds_list = [(Chem.MolFromSmiles(smiles), chembl_id) for _, chembl_id, smiles in table[[CID_column, SMILES_column]].itertuples()]
@@ -62,7 +69,8 @@ def hierarchical_cluster_fingerprints(table, distance_threshold=0.2, CID_column=
     fingerprints = [rdkit_gen.GetFingerprint(mol) for mol, idx in compounds_list]
 
     # Perform hierarchical clustering
-    df_data = table[[CID_column, SMILES_column]]
+    df_data = table[[CID_column, SMILES_column, pIC50_column]].copy()
+    df_data.loc[:, "Fingerprints"] = df_data[SMILES_column].apply(smiles_to_fp)
 
     # Calculate the Tanimoto distance matrix
     distance_matrix = tanimoto_distance_matrix(fingerprints)
@@ -73,7 +81,7 @@ def hierarchical_cluster_fingerprints(table, distance_threshold=0.2, CID_column=
 
     tf = time() - t0
     # Assign cluster ID
-    df_clusters = assign_cluster_id(pd.DataFrame(fingerprints), cluster.labels_)
+    df_clusters = assign_cluster_id(df_data, cluster.labels_)
     # Metrics
     s1 = silhouette_score(distance_matrix, cluster.labels_, metric='euclidean')
     c1 = calinski_harabasz_score(distance_matrix, cluster.labels_)
@@ -82,11 +90,8 @@ def hierarchical_cluster_fingerprints(table, distance_threshold=0.2, CID_column=
                               columns=['Time', 'Silhouette', 'CH score', 'DB score'])
     return df_metrics, df_clusters
 
-def plot_cluster_hist(table, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', Cluster_ID='Cluster_ID'):
-    '''table: compounds dataframe
-    default column names are as above
-    '''
-    df_metrics, df_clusters = hierarchical_cluster_fingerprints(table, distance_threshold=distance_threshold, CID_column=CID_column, SMILES_column=SMILES_column)
+def plot_cluster_hist(table, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', pIC50_column="f_avg_pIC50", Cluster_ID='Cluster_ID'):
+    df_metrics, df_clusters = hierarchical_cluster_fingerprints(table, distance_threshold=distance_threshold, CID_column=CID_column, SMILES_column=SMILES_column, pIC50_column=pIC50_column)
     plt.figure(figsize=(15, 4))
     plt.hist(df_clusters[Cluster_ID], bins=len(df_clusters[Cluster_ID].unique()))
     plt.xlabel('Cluster ID')
@@ -98,7 +103,6 @@ def plot_cluster_hist(table, distance_threshold=0.2, CID_column='CID', SMILES_co
 
 def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50', shuffle=True, stratify=None):
     """Split the data based on the cluster ID
-    Takes a random 20% of clustered molecules as test set
     """
     # Set the random seed for reproducibility
     np.random.seed(random_state)
