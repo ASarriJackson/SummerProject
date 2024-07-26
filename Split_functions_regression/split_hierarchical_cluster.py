@@ -81,3 +81,45 @@ def hierarchical_cluster_fingerprints(table, distance_threshold=0.2, CID_column=
     df_metrics = pd.DataFrame(data=[[tf, s1, c1, d1]],
                               columns=['Time', 'Silhouette', 'CH score', 'DB score'])
     return df_metrics, df_clusters
+
+def plot_cluster_hist(table, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', Cluster_ID='Cluster_ID'):
+    '''table: compounds dataframe
+    default column names are as above
+    '''
+    df_metrics, df_clusters = hierarchical_cluster_fingerprints(table, distance_threshold=distance_threshold, CID_column=CID_column, SMILES_column=SMILES_column)
+    plt.figure(figsize=(15, 4))
+    plt.hist(df_clusters[Cluster_ID], bins=len(df_clusters[Cluster_ID].unique()))
+    plt.xlabel('Cluster ID')
+    plt.ylabel('Cluster size')
+    plt.title(f'Cluster size distribution: distance_threshold={distance_threshold}')
+    return plt.show()
+
+
+
+def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50', shuffle=True, stratify=None):
+    """Split the data based on the cluster ID
+    Takes a random 20% of clustered molecules as test set
+    """
+    # Set the random seed for reproducibility
+    np.random.seed(random_state)
+    
+    df_metrics, df_clusters = hierarchical_cluster_fingerprints(table, distance_threshold=distance_threshold, CID_column=CID_column, SMILES_column=SMILES_column, pIC50_column=pIC50_column)
+    df_data = table[[CID_column, SMILES_column, pIC50_column]].copy()
+    df_data.loc[:, "Fingerprints"] = df_data[SMILES_column].apply(smiles_to_fp)
+    # Get the unique cluster IDs
+    unique_clusters = df_clusters['Cluster_ID'].unique()
+    
+    # Split the clusters into training and testing sets
+    train_clusters, test_clusters = train_test_split(unique_clusters, test_size=test_size, random_state=random_state, shuffle=shuffle, stratify=stratify)
+    
+    # Get the indices of the training and testing data
+    train_indices = df_clusters.index[df_clusters['Cluster_ID'].isin(train_clusters)]
+    test_indices = df_clusters.index[df_clusters['Cluster_ID'].isin(test_clusters)]
+    
+    # Get the training and testing data
+    X_train = df_data.loc[train_indices, 'Fingerprints']
+    X_test = df_data.loc[test_indices, 'Fingerprints']
+    y_train = df_data.loc[train_indices, 'f_avg_pIC50']
+    y_test = df_data.loc[test_indices, 'f_avg_pIC50']
+    
+    return X_train, X_test, y_train, y_test
