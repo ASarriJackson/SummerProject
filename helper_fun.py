@@ -273,7 +273,7 @@ def plot_roc_for_multi_class(model,static_test_x,static_train_y,static_test_y,bi
         title="ROC curves for multiclass"
     )
     if one_vs_rest==False:
-        plt.axline(xy1=[0,0],xy2=[1.0,1.0],color="black",label="Chance level (AUC = 0.5)",linestyle="--")
+        plt.plot([0, 0], [0, 1.0], color="black", label="Chance level (AUC = 0.5)", linestyle="--")
         plt.legend(
             loc = "lower right"
         )
