@@ -30,7 +30,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import KFold, train_test_split, cross_val_score
 from sklearn.metrics import auc, accuracy_score, recall_score
 from sklearn.metrics import roc_curve, roc_auc_score, RocCurveDisplay
-from sklearn.metrics import matthews_corrcoef, f1_score,classification_report
+from sklearn.metrics import matthews_corrcoef, f1_score,classification_report, confusion_matrix
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
@@ -248,20 +248,19 @@ def plot_roc_for_multi_class(model,static_test_x,static_train_y,static_test_y,bi
     
     fig, ax = plt.subplots(figsize=(10,10))
     if one_vs_rest==False:
-        plt.figure(figure=fig)
-        plt.plot([0.0, 1.0], [0.0, 1.0], color="black", label="Chance level (AUC = 0.5)",lw=1,linestyle="--",ax=ax)
-        plt.legend(
-            loc = "lower right"
-        )
+        plt.plot([0.0, 1.0], [0.0, 1.0], color="black", label="Chance level (AUC = 0.5)",lw=1,linestyle="--")
     if micro == True:
         plt.plot(
         fpr["micro"],
         tpr["micro"],
-        label=f'micro-average ROC curve (AUC = {roc_auc["micro"]:.2f})',
+        label=f"micro-average ROC curve (AUC = {roc_auc["micro"]:.2f})",
         color = "deeppink",
         linestyle=":",
         linewidth=4,
     )
+    plt.legend(
+            loc = "lower right"
+        )
     if one_vs_rest == True:
         colors = cycle(["blue","green","orange","red","violet","brown","aqua","black","darkblue","purple"])
         for class_id, color in zip(range(len(bins_label)), colors):
