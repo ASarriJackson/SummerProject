@@ -54,7 +54,7 @@ def objective(trial):
     return f1_score(static_test_y_3, y_pred,average="micro"), calculate_micro_auc(model,static_test_x_3,static_train_y_3,static_test_y_3), matthews_corrcoef(static_test_y_3, y_pred)
 
 study = optuna.create_study(directions=["maximize","maximize","maximize"],sampler=TPESampler(seed=SEED))
-study.optimize(objective, n_trials=10000, timeout=900, n_jobs=8)
+study.optimize(objective, n_trials=10000, timeout=6000, n_jobs=8)
 
 best_trials = study.best_trials
 
