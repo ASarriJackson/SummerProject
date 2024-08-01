@@ -24,9 +24,9 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import seaborn as sns
 
 # Neural network specific libraries
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.callbacks import ModelCheckpoint
+from keras.models import Sequential, load_model
+from keras.layers import Dense
+from keras.callbacks import ModelCheckpoint
 
 
 SEED = 42
@@ -35,6 +35,7 @@ seed_everything(SEED)
 compounds = pd.read_csv('../COVID_MOONSHOT/compounds_filtered.csv')
 
 compounds["Fingerprints"] = compounds["SMILES"].apply(smiles_to_fp)
+compounds["morgan2"] = compounds["SMILES"].apply(smiles_to_fp, method="morgan2", n_bits=2048)
 x_train_rand, x_test_rand, y_train_rand, y_test_rand = random_split(compounds["Fingerprints"], compounds["f_avg_pIC50"])
 x_train_strat, x_test_strat, y_train_strat, y_test_strat = strat_pIC50_split(compounds)
 x_train_hi, x_test_hi, y_train_hi, y_test_hi = split_hierarchical_clusters(compounds, test_size=0.2, random_state=42)
