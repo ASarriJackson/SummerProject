@@ -18,9 +18,9 @@ import plotly.express as px
 from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem
 from rdkit.ML.Cluster import Butina
-
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
+from rdkit.DataStructs.cDataStructs import ConvertToNumpyArray
 
 from sklearn import svm, metrics, clone
 import sklearn.datasets
@@ -87,7 +87,7 @@ def smiles_to_fp(smiles, method="maccs", n_bits=2048):
         return np.array(MACCSkeys.GenMACCSKeys(mol))
     if method == "morgan2":
         fpg = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=n_bits)
-        return np.array(fpg.GetCountFingerprint(mol))
+        return np.array(fpg.GetFingerprint(mol))
     if method == "morgan3":
         fpg = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=n_bits)
         return np.array(fpg.GetCountFingerprint(mol))
@@ -291,3 +291,5 @@ def calculate_micro_auc(model,static_test_x,static_train_y,static_test_y):
     roc_auc["micro"] = auc(fpr["micro"],tpr["micro"])
     
     return auc(fpr["micro"],tpr["micro"])
+
+
