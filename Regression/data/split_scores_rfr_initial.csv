@@ -4,3 +4,4 @@ Stratified pIC50,0.462,0.423,0.517
 Hierarchical Clustering,0.675,0.705,0.324
 UMAP Noise,0.782,0.836,-0.05
 UMAP Furthest Cluster,0.839,0.939,-0.238
+

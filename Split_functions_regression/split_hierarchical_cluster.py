@@ -54,7 +54,7 @@ def assign_cluster_id(df_data, cluster_labels):
     return df_data
 
 #define a function that takes in a list of fingerprints and a cutoff value and returns the equivalent cluster labels
-def hierarchical_cluster_fingerprints(table, distance_threshold=0.12, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50'):
+def hierarchical_cluster_fingerprints(table, distance_threshold=0.12, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50',fingerprint_method="maccs"):
     """Cluster fingerprints
     Input: whole dataframe (compounds)
     Parameters:
@@ -70,7 +70,7 @@ def hierarchical_cluster_fingerprints(table, distance_threshold=0.12, CID_column
 
     # Perform hierarchical clustering
     df_data = table[[CID_column, SMILES_column, pIC50_column]].copy()
-    df_data.loc[:, "Fingerprints"] = df_data[SMILES_column].apply(smiles_to_fp)
+    df_data.loc[:, "Fingerprints"] = df_data[SMILES_column].apply(smiles_to_fp,method=fingerprint_method)
 
     # Calculate the Tanimoto distance matrix
     distance_matrix = tanimoto_distance_matrix(fingerprints)
@@ -101,7 +101,7 @@ def plot_cluster_hist(table, distance_threshold=0.2, CID_column='CID', SMILES_co
 
 
 
-def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50', shuffle=True, stratify=None):
+def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_threshold=0.2, CID_column='CID', SMILES_column='SMILES', pIC50_column='f_avg_pIC50',fingerprint_method="maccs",shuffle=True, stratify=None):
     """Split the data based on the cluster ID
     """
     # Set the random seed for reproducibility
@@ -109,7 +109,7 @@ def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_
     
     df_metrics, df_clusters = hierarchical_cluster_fingerprints(table, distance_threshold=distance_threshold, CID_column=CID_column, SMILES_column=SMILES_column, pIC50_column=pIC50_column)
     df_data = table[[CID_column, SMILES_column, pIC50_column]].copy()
-    df_data.loc[:, "Fingerprints"] = df_data[SMILES_column].apply(smiles_to_fp)
+    df_data.loc[:, fingerprint_method] = df_data[SMILES_column].apply(smiles_to_fp,method=fingerprint_method)
     # Get the unique cluster IDs
     unique_clusters = df_clusters['Cluster_ID'].unique()
     
@@ -121,8 +121,8 @@ def split_hierarchical_clusters(table, test_size=0.2, random_state=42, distance_
     test_indices = df_clusters.index[df_clusters['Cluster_ID'].isin(test_clusters)]
     
     # Get the training and testing data
-    X_train = df_data.loc[train_indices, 'Fingerprints']
-    X_test = df_data.loc[test_indices, 'Fingerprints']
+    X_train = df_data.loc[train_indices, fingerprint_method]
+    X_test = df_data.loc[test_indices, fingerprint_method]
     y_train = df_data.loc[train_indices, 'f_avg_pIC50']
     y_test = df_data.loc[test_indices, 'f_avg_pIC50']
     
