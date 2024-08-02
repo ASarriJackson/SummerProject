@@ -16,7 +16,7 @@ import plotly.express as px
 
 # import matplotlib.patches as mpatches
 from rdkit import Chem, DataStructs
-from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem
+from rdkit.Chem import Descriptors, Draw, PandasTools, rdFingerprintGenerator, AllChem, MACCSkeys
 from rdkit.ML.Cluster import Butina
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit.Chem import MACCSkeys, rdFingerprintGenerator
