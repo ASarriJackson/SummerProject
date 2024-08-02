@@ -2,5 +2,5 @@ Split,MAE,MSE,R2
 Random,0.383,0.309,0.58
 Stratified pIC50,0.462,0.423,0.517
 Hierarchical Clustering,0.675,0.705,0.324
-UMAP Noise,0.787,0.914,-0.179
+UMAP Noise,0.801,0.897,-0.119
 UMAP Furthest Cluster,0.946,1.174,-0.598

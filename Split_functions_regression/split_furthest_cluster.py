@@ -26,12 +26,16 @@ SEED = 42
 seed_everything(SEED)
 
 #adapted from OPIG website
-def fingerprint_list_from_smiles_list(smiles_list, n_bits=2048):
-    fingerprint_list = []
-    for smiles in tqdm(smiles_list):
-        mol = Chem.MolFromSmiles(smiles)
-        fingerprint_list.append(fingerprint_as_array(mol, n_bits))
-    return fingerprint_list
+def fingerprint_list_from_smiles_list(smiles_list, n_bits=2048, fingerprint_method="morgan2"):
+    if fingerprint_method == "morgan2":
+        fingerprint_list = []
+        for smiles in tqdm(smiles_list):
+            mol = Chem.MolFromSmiles(smiles)
+            fingerprint_list.append(fingerprint_as_array(mol, n_bits))
+        return fingerprint_list
+    elif fingerprint_method == "maccs":
+        fingerprint_list = [np.array(smiles_to_fp(smiles, method="maccs")) for smiles in smiles_list]
+        return fingerprint_list
 
 def fingerprint_as_array(mol, n_bits=2048):
     fingerprint = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=n_bits)
@@ -39,14 +43,14 @@ def fingerprint_as_array(mol, n_bits=2048):
     DataStructs.ConvertToNumpyArray(fingerprint, array)
     return array
 
-def get_umap_fingerprint_array(table, smiles_column="SMILES"):
+def get_umap_fingerprint_array(table, smiles_column="SMILES",fingerprint_method="morgan2"):
     SMILES_list = [x for x in table[smiles_column]]
-    fingerprint_list = fingerprint_list_from_smiles_list(SMILES_list)
+    fingerprint_list = fingerprint_list_from_smiles_list(SMILES_list,fingerprint_method=fingerprint_method)
     fingerprint_array = np.array(fingerprint_list) 
     return fingerprint_array
 
-def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50", smiles_column="SMILES"):
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50", smiles_column="SMILES",fingerprint_method="morgan2"):
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_method)
     umap_reducer = umap.UMAP()
     umap_fingerprint_array = umap_reducer.fit_transform(fingerprint_array)
     umap_fingerprint_array_fig = pd.DataFrame(umap_fingerprint_array, columns=["X","Y"])
@@ -56,8 +60,8 @@ def get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_
     umap_fingerprint_array_fig.dropna(subset=[CID_column], inplace=True)
     return umap_fingerprint_array_fig
 
-def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50"):
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50")
+def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50",fingerprint_method="morgan2"):
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column="CID", pIC50_column="f_avg_pIC50",fingerprint_method=fingerprint_method)
     custom_data = umap_fingerprint_array_fig[[CID_column, pIC50_column]]
 
     df_fig = px.scatter(umap_fingerprint_array_fig, x="X", y="Y",
@@ -71,9 +75,9 @@ def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50
     return df_fig.show()
 
 
-def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50"):
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50",fingerprint_column="maccs"):
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
     clusterable_embedding = umap.UMAP(n_neighbors=15, min_dist=0.0, n_components=2,).fit_transform(fingerprint_array)
     clusterer = hdbscan.HDBSCAN(min_samples=15, min_cluster_size=75)
     labels = clusterer.fit_predict(clusterable_embedding)
@@ -134,7 +138,7 @@ def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC5
 
     #     # Append these rows to the selected_points_df DataFrame
     #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
-    X_test = selected_points_df[smiles_column].apply(smiles_to_fp)
+    X_test = selected_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_test = selected_points_df[pIC50_column]
     non_selected_points_series_x = pd.Series(non_selected_points[:, 0])  # For the first column
     non_selected_points_series_y = pd.Series(non_selected_points[:, 1])
@@ -149,17 +153,17 @@ def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC5
 
     #     # Append these rows to the selected_points_df DataFrame
     #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
-    X_train = selected_points_df[smiles_column].apply(smiles_to_fp)
+    X_train = selected_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_train = selected_points_df[pIC50_column]
 
     return X_test, X_train, Y_test, Y_train
 
 
 
-def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75):
+def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75,fingerprint_column="maccs"):
     
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
     clusterable_embedding = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, n_components=n_components).fit_transform(fingerprint_array)
     clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
     labels = clusterer.fit_predict(clusterable_embedding)
@@ -194,7 +198,7 @@ def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_colu
 
     #     # Append these rows to the selected_points_df DataFrame
     #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
-    X_test = noise_points_df[smiles_column].apply(smiles_to_fp)
+    X_test = noise_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_test = noise_points_df[pIC50_column]
     non_noise_points_series_x = pd.Series(non_noise_points[:, 0])  # For the first column
     non_noise_points_series_y = pd.Series(non_noise_points[:, 1])
@@ -209,20 +213,20 @@ def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_colu
 
     #     # Append these rows to the selected_points_df DataFrame
     #     selected_points_df = pd.concat([selected_points_df, matching_rows], ignore_index=True)
-    X_train = noise_points_df[smiles_column].apply(smiles_to_fp)
+    X_train = noise_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_train = noise_points_df[pIC50_column]
 
     return X_test, X_train, Y_test, Y_train
 
 
-def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75 ):
+def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75,fingerprint_column="maccs"):
     '''
     default: 79
     min_samples=15, min_cluster_size=75: Number of selected points: 93
 
     '''
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
     clusterable_embedding = umap.UMAP(
         n_neighbors=n_neighbors,
         min_dist= min_dist,
@@ -266,13 +270,13 @@ def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CI
 
 
 
-def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75): 
+def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75,fingerprint_column="maccs"): 
     '''
     default: 133
     min_samples=10, min_cluster_size=80: Number of noise points: 129
     '''
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
-    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column)
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
+    umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
     clusterable_embedding = umap.UMAP(
         n_neighbors=n_neighbors,
         min_dist=min_dist,
@@ -293,7 +297,7 @@ def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID",
     return plt.show()
 
 #adapted from https://github.com/Sahet11/nci60_clustering/blob/main/umap_clustering.py
-def umap_clustering_best(table, df_data, n_clusters=20, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50" ):
+def umap_clustering_best(table, df_data, n_clusters=20, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50",fingerprint_column="maccs" ):
     """
     Best clustering method
     :param sample: MPFs
@@ -304,7 +308,7 @@ def umap_clustering_best(table, df_data, n_clusters=20, smiles_column="SMILES", 
     compounds = pd.read_csv("../COVID_MOONSHOT/compounds_filtered.csv")
     df_data = compounds[["CID", "SMILES"]]
     """
-    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column)
+    fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
     t0 = time()
     x_red = umap.UMAP(n_neighbors=100, min_dist=0.0,
                       n_components=2, metric='jaccard',
