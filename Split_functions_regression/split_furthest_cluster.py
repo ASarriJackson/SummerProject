@@ -19,6 +19,7 @@ import plotly.express as px
 from time import time
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
+from sklearn.metrics import pairwise_distances_argmin_min
 
 # from sklearn.decomposition import PCA
 # from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
@@ -156,7 +157,7 @@ def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC5
     X_train = selected_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_train = selected_points_df[pIC50_column]
 
-    return X_test, X_train, Y_test, Y_train
+    return X_train, X_test, Y_train, Y_test
 
 
 
@@ -216,7 +217,7 @@ def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_colu
     X_train = noise_points_df[smiles_column].apply(smiles_to_fp,method=fingerprint_column)
     Y_train = noise_points_df[pIC50_column]
 
-    return X_test, X_train, Y_test, Y_train
+    return X_train, X_test, Y_train, Y_test
 
 
 def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50", n_neighbors=15, min_dist=0.0, n_components=2, min_samples=15, min_cluster_size=75,fingerprint_column="maccs"):
