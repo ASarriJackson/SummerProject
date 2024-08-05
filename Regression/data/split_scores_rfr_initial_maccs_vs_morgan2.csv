@@ -2,5 +2,5 @@ Split,maccs MAE,maccs MSE,maccs R2,morgan2 MAE,morgan2 MSE,morgan2 R2
 Random,0.383,0.309,0.58,0.328,0.252,0.657
 Stratified pIC50,0.462,0.423,0.517,0.32,0.247,0.706
 Hierarchical Clustering,0.675,0.705,0.324,0.65,0.835,0.2
-UMAP Noise,0.818,0.901,-0.236,0.698,0.879,-0.104
+UMAP Noise,0.737,0.772,-0.04,0.735,0.948,-0.239
 UMAP Furthest Cluster,0.708,0.696,0.061,0.691,0.911,-0.201
