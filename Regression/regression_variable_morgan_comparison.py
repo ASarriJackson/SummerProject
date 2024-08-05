@@ -10,6 +10,9 @@ parent_directory = current_file_path.parent.parent
 sys.path.append(str(parent_directory))
 from helper_fun import *
 
+# Construct the path to the compounds_filtered.csv file
+compounds_file_path = parent_directory / 'COVID_MOONSHOT' / 'compounds_filtered.csv'
+compounds = pd.read_csv(compounds_file_path)
 # Silence some expected warnings
 filterwarnings("ignore")
 
@@ -31,8 +34,6 @@ from keras.callbacks import ModelCheckpoint
 
 SEED = 42
 seed_everything(SEED)
-
-compounds = pd.read_csv('../COVID_MOONSHOT/compounds_filtered.csv')
 
 compounds["Fingerprints"] = compounds["SMILES"].apply(smiles_to_fp)
 compounds["morgan2"] = compounds["SMILES"].apply(smiles_to_fp, method="morgan2", n_bits=2048)
