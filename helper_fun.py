@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 # from matplotlib.lines import Line2D
-
+from statistics import mean
 from scipy.stats import spearmanr
 import umap
 from tqdm import tqdm
@@ -293,3 +293,24 @@ def calculate_micro_auc(model,static_test_x,static_train_y,static_test_y):
     return auc(fpr["micro"],tpr["micro"])
 
 
+def balanced_MCC_macro_avg(y_true, y_pred):
+    C = confusion_matrix(y_true, y_pred)
+    classes = C.shape[0]
+    bal_MCC_each_class = []
+    for i in range(classes):
+        TP = C[i][i]
+        FN = 0
+        FP = 0
+        TN = 0
+        for j in range(classes):
+            if j != i:
+                FN = FN + C[i][j]
+                FP = FP + C[j][i] 
+                for k in range(classes):
+                    if k != i:
+                        TN = TN + C[j][k]
+        sens = TP / (TP + FN)
+        spec = TN / (TN + FP)
+        x = (sens + spec - 1)/(math.sqrt(1-(sens-spec)**2))
+        bal_MCC_each_class.append(x)
+    return mean(bal_MCC_each_class)
