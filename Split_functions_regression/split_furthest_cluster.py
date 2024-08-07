@@ -15,6 +15,7 @@ import umap
 import sklearn.datasets
 import sklearn.cluster as cluster
 import hdbscan
+import numpy as np
 import plotly.express as px
 from time import time
 from sklearn.cluster import AgglomerativeClustering
@@ -260,10 +261,10 @@ def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CI
     
     print(f"Number of selected points: {len(selected_points)}")
     # Plot all points
-    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='All Other Points')
+    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='Testing Points')
 
     # Highlight selected points
-    plt.scatter(selected_points[:, 0], selected_points[:, 1], color='red', s= 0.3, label='Furthest Cluster Points')
+    plt.scatter(selected_points[:, 0], selected_points[:, 1], color='red', s= 0.3, label='Traing Points')
 
     plt.legend()
     plt.title('UMAP projection with Furthest Cluster Points Highlighted')
