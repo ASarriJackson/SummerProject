@@ -80,7 +80,7 @@ def get_umap_fingerprint_plot(table, CID_column="CID", pIC50_column="f_avg_pIC50
 def furthest_cluster_split(table, smiles_column="SMILES", CID_column="CID", pIC50_column="f_avg_pIC50",fingerprint_column="maccs"):
     fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
     umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
-    clusterable_embedding = umap.UMAP(n_neighbors=15, min_dist=0.0, n_components=2,).fit_transform(fingerprint_array)
+    clusterable_embedding = umap.UMAP(n_neighbors=15, min_dist=0.0, n_components=2, random_state=SEED).fit_transform(fingerprint_array)
     clusterer = hdbscan.HDBSCAN(min_samples=15, min_cluster_size=75)
     labels = clusterer.fit_predict(clusterable_embedding)
 
@@ -166,7 +166,7 @@ def UMAP_noise_split(table, smiles_column="SMILES", CID_column="CID", pIC50_colu
     
     fingerprint_array = get_umap_fingerprint_array(table, smiles_column=smiles_column,fingerprint_method=fingerprint_column)
     umap_fingerprint_array_fig = get_umap_fingerprint_array_fig(table, CID_column=CID_column, pIC50_column=pIC50_column,fingerprint_method=fingerprint_column)
-    clusterable_embedding = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, n_components=n_components).fit_transform(fingerprint_array)
+    clusterable_embedding = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, n_components=n_components, random_state=SEED).fit_transform(fingerprint_array)
     clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
     labels = clusterer.fit_predict(clusterable_embedding)
 
@@ -233,6 +233,7 @@ def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CI
         n_neighbors=n_neighbors,
         min_dist= min_dist,
         n_components=n_components,
+        random_state=SEED
     ).fit_transform(fingerprint_array)
 
     clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
@@ -283,6 +284,7 @@ def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID",
         n_neighbors=n_neighbors,
         min_dist=min_dist,
         n_components=n_components,
+        random_state=SEED
     ).fit_transform(fingerprint_array)
 
     clusterer = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size)
@@ -314,7 +316,7 @@ def umap_clustering_best(table, df_data, n_clusters=20, smiles_column="SMILES", 
     t0 = time()
     x_red = umap.UMAP(n_neighbors=100, min_dist=0.0,
                       n_components=2, metric='jaccard',
-                      random_state=42).fit_transform(fingerprint_array)
+                      random_state=SEED).fit_transform(fingerprint_array)
     clustering = AgglomerativeClustering(linkage='ward', n_clusters=n_clusters)
     clustering.fit(x_red)
     tf = time() - t0
