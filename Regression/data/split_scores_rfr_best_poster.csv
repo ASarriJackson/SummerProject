@@ -1,5 +1,5 @@
-Split,MACCS MAE,MACCS MSE,MACCS R2,MACCS Pearson,MACCS Spearman
-Default Random,0.383,0.309,0.58,0.768,0.751
-Optimised Random,0.424,0.326,0.557,0.752,0.737
-Default UMAP Furthest Cluster,0.716,0.828,0.161,0.443,0.444
-Optimized UMAP Furthest Cluster,0.718,0.808,0.182,0.456,0.434
+Split,MACCS MAE,MACCS MSE,MACCS R2
+Default Random,0.547,0.537,0.392
+Optuna Random,0.573,0.552,0.375
+Default Furthest,0.611,0.574,0.035
+Optuna Furthest,0.605,0.559,0.06
