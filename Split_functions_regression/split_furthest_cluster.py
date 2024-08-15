@@ -262,13 +262,13 @@ def UMAP_highlight_selected_points(table, smiles_column="SMILES", CID_column="CI
     
     print(f"Number of selected points: {len(selected_points)}")
     # Plot all points
-    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='Testing Points')
+    plt.scatter(clusterable_embedding[:, 0], clusterable_embedding[:, 1], color='gray', s = 0.3, label='Train Points')
 
     # Highlight selected points
-    plt.scatter(selected_points[:, 0], selected_points[:, 1], color='red', s= 0.3, label='Traing Points')
+    plt.scatter(selected_points[:, 0], selected_points[:, 1], color='red', s= 0.3, label='Test Points')
 
     plt.legend()
-    plt.title('UMAP projection with Furthest Cluster Points Highlighted')
+    plt.title('UMAP projection Furthest Cluster Split Highlighted')
     return plt.show()
 
 
@@ -297,7 +297,7 @@ def UMAP_highlight_noise_points(table, smiles_column="SMILES", CID_column="CID",
     # Highlight selected points
     plt.scatter(noise_points[:, 0], noise_points[:, 1], color='red', s= 0.3, label='Noise')
     plt.legend()
-    plt.title('UMAP projection with Noise Highlighted')
+    plt.title('UMAP projection Noise Split Highlighted')
     return plt.show()
 
 #adapted from https://github.com/Sahet11/nci60_clustering/blob/main/umap_clustering.py
